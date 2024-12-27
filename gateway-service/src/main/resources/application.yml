@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/**
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/users/**
+        - id: customer-service
+          uri: lb://customer-service
+          predicates:
+            - Path=/customers/**
+        - id: device-service
+          uri: lb://device-service
+          predicates:
+            - Path=/devices/**
+        - id: asset-service
+          uri: lb://asset-service
+          predicates:
+            - Path=/assets/**
+        - id: installation-service
+          uri: lb://installation-service
+          predicates:
+            - Path=/installations/**
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: your-256-bit-secret-key-here 
