@@ -1,54 +1,30 @@
-server:
-  port: 8081
-
 spring:
+  profiles:
+    active: dev
   application:
     name: auth-service
-  datasource:
-    url: jdbc:mysql://localhost:3306/montage_auth?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
+
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+    open-in-view: false
     properties:
       hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
-    generate-ddl: true
-  main:
-    allow-bean-definition-overriding: true
+        jdbc:
+          time_zone: UTC
 
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
-    fetch-registry: true
-    register-with-eureka: true
-  instance:
-    prefer-ip-address: true
 
-app:
-  jwt:
-    secret: QUJDREVGMTIzNDU2Nzg5MCFAIyQlXiYqKClfKy09UVdFUlRZVUlPUEFTREZHSEpLTFpYQ1ZWQU5NQlFXRVJUWQ==
-    expiration: 86400000
+
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: never
+    include-exception: false
 
 jwt:
-    secret: QUJDREVGMTIzNDU2Nzg5MCFAIyQlXiYqKClfKy09UVdFUlRZVUlPUEFTREZHSEpLTFpYQ1ZWQU5NQlFXRVJUWQ==
-    expiration: 86400000  # 24 hours in milliseconds
-    refresh-expiration: 5858
-    
-azure:
-  group-mappings:
-    roleMap:
-      "Group1": "ROLE_ADMIN"
-      "Group2": "ROLE_USER"
+  header: Authorization
+  token-prefix: Bearer 
+  authorities-key: roles
 
 logging:
-  level:
-    com.montage.auth: DEBUG
-    org.springframework.security: INFO
-    org.springframework.web: INFO 
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
