@@ -24,8 +24,6 @@
             <groupId>com.montage</groupId>
             <artifactId>common-service</artifactId>
             <version>${common-service.version}</version>
-            <scope>system</scope>
-            <systemPath>D:\sarversh sir\Montage-Connect-v3\Montage-Connect\common-service\target\common-service-1.0.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
