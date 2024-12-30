@@ -1,26 +1,21 @@
 package com.montage.auth.service.impl;
 
+import java.util.ArrayList;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
 import com.montage.auth.dto.LoginRequest;
 import com.montage.auth.dto.LoginResponse;
-import com.montage.auth.dto.UserDTO;
 import com.montage.auth.entity.User;
 import com.montage.auth.mapper.UserMapper;
 import com.montage.auth.service.AuthService;
 import com.montage.auth.service.JwtService;
 import com.montage.auth.service.UserService;
+
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
