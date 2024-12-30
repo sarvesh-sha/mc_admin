@@ -1,65 +1,49 @@
 package com.montage.common.exception;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.apache.kafka.common.errors.ResourceNotFoundException;
+import com.montage.common.dto.ValidationErrorResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
-@RestControllerAdvice
-public class GlobalExceptionHandler {
-
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
-        List<String> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.toList());
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                "Validation Failed",
-                errors
-        );
-
-        return ResponseEntity.badRequest().body(errorResponse);
-    }
+@Slf4j
+@ControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ErrorResponse> handleCustomValidationExceptions(
-            ValidationException ex) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                ex.getMessage(),
-                ex.getErrors()
-        );
-
-        return ResponseEntity.badRequest().body(errorResponse);
+    public ResponseEntity<ValidationErrorResponse> handleValidationException(ValidationException ex) {
+        log.warn("Validation error: {}", ex.getMessage());
+        
+        ValidationErrorResponse response = ValidationErrorResponse.builder()
+            .type("Validation")
+            .message("Validation failed")
+            .details(ex.getErrors())
+            .timestamp(LocalDateTime.now())
+            .build();
+        
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    @Data
-    @AllArgsConstructor
-    static class ErrorResponse {
-        private String message;
-        private List<String> errors;
-
-        public ErrorResponse(String message) {
-            this.message = message;
-            this.errors = new ArrayList<>();
-        }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ValidationErrorResponse> handleAllUncaughtException(Exception ex) {
+        log.error("Unexpected error occurred", ex);
+        
+        ValidationErrorResponse response = ValidationErrorResponse.builder()
+            .type("Error")
+            .message("An unexpected error occurred")
+            .details(Collections.singletonList(ex.getMessage()))
+            .timestamp(LocalDateTime.now())
+            .build();
+        
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 } 

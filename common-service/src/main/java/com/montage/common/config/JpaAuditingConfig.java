@@ -10,7 +10,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+//import org.springframework.security.oauth2.core.user.OAuth2User;
 
 
 @Configuration
@@ -32,9 +32,10 @@ public class JpaAuditingConfig {
             Object principal = authentication.getPrincipal();
             if (principal instanceof UserDetails) {
                 return Optional.of(((UserDetails) principal).getUsername());
-            } else if (principal instanceof OAuth2User) {
-                return Optional.of(((OAuth2User) principal).getAttribute("email"));
-            }
+            } 
+//            else if (principal instanceof OAuth2User) {
+//                return Optional.of(((OAuth2User) principal).getAttribute("email"));
+//            }
             
             return Optional.of(authentication.getName());
         };

@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class SortCriteria {
     private String field;
-    private String direction; // asc, desc
+    private String direction = "ASC";
 } 

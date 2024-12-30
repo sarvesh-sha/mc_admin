@@ -92,15 +92,15 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Add Security Dependencies -->
-        <dependency>
+       <!--    Add Security Dependencies
+      <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-oauth2-jose</artifactId>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -117,15 +117,19 @@
             <version>0.11.5</version>
         </dependency>
 
-        <!-- Add Spring Cloud Sleuth -->
-      
+        <!-- Add Spring Cloud Sleuth
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-sleuth</artifactId>
+            <version>3.1.9</version>
+        </dependency> -->
 
-        <!-- For OAuth2User -->
+        <!-- For OAuth2User 
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-oauth2-client</artifactId>
         </dependency>
-
+-->
         <!-- For EnableJpaAuditing -->
         <dependency>
             <groupId>org.springframework.data</groupId>
@@ -157,6 +161,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+
+        <!-- SpringDoc OpenAPI UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        
+        <!-- SpringDoc OpenAPI Security
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+            <version>2.3.0</version>
+        </dependency> -->
     </dependencies>
 
     <dependencyManagement>
