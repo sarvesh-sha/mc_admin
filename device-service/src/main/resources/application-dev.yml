@@ -2,7 +2,7 @@ spring:
   application:
     name: device-service
   datasource:
-    url: jdbc:mysql://mysql-flexi-dev-montage-wus.mysql.database.azure.com:3306/auth_db?useSSL=true&requireSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://mysql-flexi-dev-montage-wus.mysql.database.azure.com:3306/mc_device?useSSL=true&requireSSL=false&serverTimezone=UTC
     username: montageadmin
     password: uIXXk6HPbvbn74J
     driver-class-name: com.mysql.cj.jdbc.Driver
