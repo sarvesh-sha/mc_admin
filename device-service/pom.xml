@@ -36,8 +36,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<spring-cloud.version>2023.0.0</spring-cloud.version>
-		   <project.base.path>${user.dir}</project.base.path>
-       <project.base.path>${user.dir}</project.base.path>   
+		  
+       <project.base.path>${user.home}</project.base.path>   
 	</properties>
 	<dependencies>
 		<dependency>
