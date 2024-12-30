@@ -50,7 +50,7 @@
             <artifactId>common-service</artifactId>
             <version>1.0.0</version>
                  <scope>system</scope>
-            <systemPath>${project.base.path}/common-service/target/common-service-1.0.0.jar</systemPath>
+            <systemPath>${project.base.path}/mc_admin/common-service/target/common-service-1.0.0.jar</systemPath>
        
             
         </dependency>
