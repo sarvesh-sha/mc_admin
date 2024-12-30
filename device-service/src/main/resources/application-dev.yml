@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: device-service
+  datasource:
+    url: jdbc:mysql://mysql-flexi-dev-montage-wus.mysql.database.azure.com:3306/auth_db?useSSL=true&requireSSL=false&serverTimezone=UTC
+    username: montageadmin
+    password: uIXXk6HPbvbn74J
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+  main:
+    allow-bean-definition-overriding: true
+
+server:
+  port: 8082
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs 
