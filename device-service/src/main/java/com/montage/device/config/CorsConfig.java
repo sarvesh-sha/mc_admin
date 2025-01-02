@@ -14,19 +14,29 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         
-        // Allow all origins - you should restrict this in production
-        config.addAllowedOriginPattern("*");
+        // Add your specific origins
+        config.addAllowedOrigin("http://localhost:4200");
+        config.addAllowedOrigin("http://74.179.58.105:8080");
+        config.addAllowedOrigin("http://localhost:3000");
         
-        // Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
-        config.addAllowedMethod("*");
+        // Allow all HTTP methods
+        config.addAllowedMethod("GET");
+        config.addAllowedMethod("POST");
+        config.addAllowedMethod("PUT");
+        config.addAllowedMethod("DELETE");
+        config.addAllowedMethod("OPTIONS");
         
-        // Allow all headers
-        config.addAllowedHeader("*");
+        // Allow specific headers
+        config.addAllowedHeader("Authorization");
+        config.addAllowedHeader("Content-Type");
+        config.addAllowedHeader("Accept");
+        config.addAllowedHeader("Origin");
+        config.addAllowedHeader("X-Requested-With");
         
-        // Allow credentials (cookies, authorization headers, etc.)
+        // Allow credentials
         config.setAllowCredentials(true);
         
-        // How long the response to the preflight request can be cached
+        // Cache preflight for 1 hour
         config.setMaxAge(3600L);
         
         source.registerCorsConfiguration("/**", config);
