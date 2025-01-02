@@ -27,4 +27,7 @@ public class OtaGroupXref extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "customer_id")
     private Customer customer;
+    
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 } 

@@ -17,22 +17,21 @@ public abstract class BaseEntity {
     @Column(name = "uuid", nullable = false, unique = true, updatable = false)
     private String uuid = UUID.randomUUID().toString();
     
-    @Column(name = "created_on")
+    @Column(name = "created_on", updatable = false)
     private LocalDateTime createdOn;
     
-    @Column(name = "updated_on")
+    @Column(name = "updated_on", insertable = false)
     private LocalDateTime updatedOn;
     
-    @Column(name = "created_by")
+    @Column(name = "created_by", updatable = false)
     private String createdBy;
     
-    @Column(name = "updated_by")
+    @Column(name = "updated_by", insertable = false)
     private String updatedBy;
     
     @PrePersist
     protected void onCreate() {
         createdOn = LocalDateTime.now();
-        updatedOn = LocalDateTime.now();
     }
 
     @PreUpdate

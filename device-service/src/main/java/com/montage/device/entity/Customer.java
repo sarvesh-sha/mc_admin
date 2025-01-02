@@ -33,5 +33,5 @@ public class Customer extends BaseEntity {
     private String shortName;
     
     @Column(name = "is_active")
-    private Boolean isActive;
+    private Boolean isActive = true;
 } 

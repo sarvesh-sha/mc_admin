@@ -29,7 +29,7 @@ public class Sensor extends BaseEntity {
     private Integer healthValue;
     
     @Column(name = "is_active")
-    private Boolean isActive;
+    private Boolean isActive = true;
     
     private String location;
     

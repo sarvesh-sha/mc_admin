@@ -26,4 +26,7 @@ public class Product extends BaseEntity {
     
     @Column(name = "sku", unique = true)
     private String sku;
+    
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 } 

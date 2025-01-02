@@ -37,7 +37,7 @@ public class Device extends BaseEntity {
     
     @NotNull(message = "Active status is required")
     @Column(name = "is_active")
-    private Boolean isActive;
+    private Boolean isActive = true;
     
     @Column(name = "installation_date")
     private LocalDateTime installationDate;
