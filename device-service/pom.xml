@@ -51,7 +51,9 @@
             <version>1.0.0</version>
                  <scope>system</scope>
             <systemPath>${project.base.path}/mc_admin/common-service/target/common-service-1.0.0.jar</systemPath>
-       
+      
+    <!--   <systemPath>D:\sarversh sir\Montage-Connect-v3\Montage-Connect\common-service/target/common-service-1.0.0.jar</systemPath>
+    -->
             
         </dependency>
 		<dependency>
@@ -146,6 +148,20 @@
 		<dependency>
 			<groupId>io.github.resilience4j</groupId>
 			<artifactId>resilience4j-timelimiter</artifactId>
+		</dependency>
+		
+		<!-- Hibernate Validator -->
+		<dependency>
+			<groupId>org.hibernate.validator</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>8.0.1.Final</version>
+		</dependency>
+		
+		<!-- Jakarta Validation API -->
+		<dependency>
+			<groupId>jakarta.validation</groupId>
+			<artifactId>jakarta.validation-api</artifactId>
+			<version>3.0.2</version>
 		</dependency>
 		
 	</dependencies>

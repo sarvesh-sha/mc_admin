@@ -65,6 +65,7 @@ public class Device extends BaseEntity {
     @Column(name = "asset_name")
     private String assetName;
     
+    @NotNull(message = "Serial number is required")
     @Column(name = "serial_number")
     private Integer serialNumber;
     
