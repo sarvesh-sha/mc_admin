@@ -1,5 +1,6 @@
 package com.montage.common.exception;
 
+import com.montage.common.dto.ApiResponse;
 import com.montage.common.dto.ValidationErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -18,6 +19,19 @@ import java.util.List;
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<Object>> handleBusinessException(BusinessException ex) {
+        log.warn("Business exception occurred: {}", ex.getMessage());
+        return ResponseEntity
+            .status(ex.getStatus())
+            .body(ApiResponse.builder()
+                .status(ex.getStatus().value())
+                .message(ex.getMessage())
+                .success(false)
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ValidationErrorResponse> handleValidationException(ValidationException ex) {

@@ -9,11 +9,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.montage.common.dto.SearchRequest;
-import com.montage.common.service.BaseService;
 import com.montage.common.specification.GenericSpecificationBuilder;
 import com.montage.device.entity.ProvisioningStatus;
-import com.montage.device.exception.BusinessException;
+//import com.montage.device.exception.BusinessException;
 import com.montage.device.repository.ProvisioningStatusRepository;
+import com.montage.device.service.ProvisioningStatusService;
+import com.montage.device.dto.request.ProvisioningStatusRequest;
+import com.montage.device.dto.response.ProvisioningStatusResponse;
+import com.montage.device.mapper.GenericMapper;
+import com.montage.common.exception.BusinessException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,21 +25,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ProvisioningStatusServiceImpl implements BaseService<ProvisioningStatus, Integer> {
+public class ProvisioningStatusServiceImpl implements ProvisioningStatusService {
 
     private final ProvisioningStatusRepository provisioningStatusRepository;
+    private final GenericMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
-    public ProvisioningStatus findById(Integer id) {
+    public ProvisioningStatusResponse findById(Integer id) {
         log.debug("Finding provisioning status by id: {}", id);
-        return provisioningStatusRepository.findById(id)
+        ProvisioningStatus entity = provisioningStatusRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Provisioning status not found with id: " + id));
+        return mapper.convert(entity, ProvisioningStatusResponse.class);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProvisioningStatus> search(SearchRequest searchRequest) {
+    public Page<ProvisioningStatusResponse> search(SearchRequest searchRequest) {
         log.debug("Searching provisioning statuses with criteria: {}", searchRequest);
         
         var specification = new GenericSpecificationBuilder<ProvisioningStatus>(searchRequest.getFilters()).build();
@@ -48,38 +54,47 @@ public class ProvisioningStatusServiceImpl implements BaseService<ProvisioningSt
                 .toList())
         );
         
-        return provisioningStatusRepository.findAll(specification, pageable);
+        Page<ProvisioningStatus> page = provisioningStatusRepository.findAll(specification, pageable);
+        return mapper.convertPage(page, ProvisioningStatusResponse.class);
     }
 
     @Override
     @Transactional
-    public ProvisioningStatus create(ProvisioningStatus status) {
-        log.debug("Creating new provisioning status: {}", status);
-        validateStatusName(status.getName());
-        return provisioningStatusRepository.save(status);
-    }
-
-    @Override
-    @Transactional
-    public ProvisioningStatus update(Integer id, ProvisioningStatus status) {
-        log.debug("Updating provisioning status with id {}: {}", id, status);
+    public ProvisioningStatusResponse create(ProvisioningStatusRequest request) {
+        log.debug("Creating new provisioning status: {}", request);
+        validateStatusName(request.getName());
         
-        var existingStatus = findById(id);
-        if (!existingStatus.getName().equals(status.getName())) {
-            validateStatusName(status.getName());
+        ProvisioningStatus entity = mapper.convert(request, ProvisioningStatus.class);
+        ProvisioningStatus savedEntity = provisioningStatusRepository.save(entity);
+        return mapper.convert(savedEntity, ProvisioningStatusResponse.class);
+    }
+
+    @Override
+    @Transactional
+    public ProvisioningStatusResponse update(Integer id, ProvisioningStatusRequest request) {
+        log.debug("Updating provisioning status with id {}: {}", id, request);
+        
+        ProvisioningStatus existingStatus = provisioningStatusRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Provisioning status not found with id: " + id));
+                
+        if (!existingStatus.getName().equals(request.getName())) {
+            validateStatusName(request.getName());
         }
         
-        existingStatus.setName(status.getName());
-        existingStatus.setDescription(status.getDescription());
-        existingStatus.setIsActive(status.getIsActive());
+        existingStatus.setName(request.getName());
+        existingStatus.setDescription(request.getDescription());
+        existingStatus.setIsActive(request.getIsActive());
         
-        return provisioningStatusRepository.save(existingStatus);
+        ProvisioningStatus updatedEntity = provisioningStatusRepository.save(existingStatus);
+        return mapper.convert(existingStatus, ProvisioningStatusResponse.class);
     }
 
     @Override
     @Transactional
     public void delete(Integer id) {
         log.debug("Deleting provisioning status with id: {}", id);
+        // Verify existence before delete
+        findById(id);
         provisioningStatusRepository.deleteById(id);
     }
 

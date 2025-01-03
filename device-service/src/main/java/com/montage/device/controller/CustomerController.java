@@ -4,6 +4,8 @@ import com.montage.common.dto.ApiResponse;
 import com.montage.common.dto.SearchRequest;
 import com.montage.device.entity.Customer;
 import com.montage.device.service.impl.CustomerServiceImpl;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,42 +16,52 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/customers")
+@RequestMapping("/api/customers")
 @RequiredArgsConstructor
+@Tag(name = "Customer Management", description = "APIs for managing customers")
 public class CustomerController {
 
     private final CustomerServiceImpl customerService;
 
-    @PostMapping("/search")
-    public ResponseEntity<ApiResponse<Page<Customer>>> search(@Valid @RequestBody SearchRequest searchRequest) {
+    @Operation(summary = "Search customers")
+    @PostMapping("v1/customer/search")
+    public ResponseEntity<ApiResponse<Page<Customer>>> searchCustomers(
+            @Valid @RequestBody SearchRequest searchRequest) {
         log.info("Searching customers with criteria: {}", searchRequest);
         return ResponseEntity.ok(ApiResponse.success(customerService.search(searchRequest)));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Customer>> findById(@PathVariable Integer id) {
+    @Operation(summary = "Get customer by ID")
+    @GetMapping("v1/customer/{id}")
+    public ResponseEntity<ApiResponse<Customer>> getCustomer(
+            @PathVariable Integer id) {
         log.info("Finding customer by id: {}", id);
         return ResponseEntity.ok(ApiResponse.success(customerService.findById(id)));
     }
 
-    @PostMapping
+    @Operation(summary = "Create new customer")
+    @PostMapping("v1/customer")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<ApiResponse<Customer>> create(@Valid @RequestBody Customer customer) {
+    public ResponseEntity<ApiResponse<Customer>> createCustomer(
+            @Valid @RequestBody Customer customer) {
         log.info("Creating new customer: {}", customer);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success(customerService.create(customer)));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Customer>> update(
+    @Operation(summary = "Update existing customer")
+    @PutMapping("v1/customer/{id}")
+    public ResponseEntity<ApiResponse<Customer>> updateCustomer(
             @PathVariable Integer id, 
             @Valid @RequestBody Customer customer) {
         log.info("Updating customer with id {}: {}", id, customer);
         return ResponseEntity.ok(ApiResponse.success(customerService.update(id, customer)));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+    @Operation(summary = "Delete customer")
+    @DeleteMapping("v1/customer/{id}")
+    public ResponseEntity<Void> deleteCustomer(
+            @PathVariable Integer id) {
         log.info("Deleting customer with id: {}", id);
         customerService.delete(id);
         return ResponseEntity.noContent().build();

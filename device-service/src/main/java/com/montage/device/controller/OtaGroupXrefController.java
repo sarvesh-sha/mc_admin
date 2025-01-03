@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/ota-groups")
+@RequestMapping("/api/ota")
 @RequiredArgsConstructor
 @Tag(name = "OTA Group Management", description = "APIs for managing OTA groups")
 public class OtaGroupXrefController {
@@ -23,29 +23,32 @@ public class OtaGroupXrefController {
     private final OtaGroupXrefServiceImpl otaGroupService;
 
     @Operation(summary = "Search OTA groups")
-    @PostMapping("/search")
-    public ResponseEntity<ApiResponse<Page<OtaGroupXref>>> search(@RequestBody SearchRequest searchRequest) {
+    @PostMapping("v1/group/search")
+    public ResponseEntity<ApiResponse<Page<OtaGroupXref>>> searchGroups(
+            @RequestBody SearchRequest searchRequest) {
         log.info("Searching OTA groups with criteria: {}", searchRequest);
         return ResponseEntity.ok(ApiResponse.success(otaGroupService.search(searchRequest)));
     }
 
     @Operation(summary = "Get OTA group by ID")
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<OtaGroupXref>> findById(@PathVariable Integer id) {
+    @GetMapping("v1/group/{id}")
+    public ResponseEntity<ApiResponse<OtaGroupXref>> getGroup(
+            @PathVariable Integer id) {
         log.info("Finding OTA group by id: {}", id);
         return ResponseEntity.ok(ApiResponse.success(otaGroupService.findById(id)));
     }
 
     @Operation(summary = "Create new OTA group")
-    @PostMapping
-    public ResponseEntity<ApiResponse<OtaGroupXref>> create(@Valid @RequestBody OtaGroupXref otaGroup) {
+    @PostMapping("v1/group")
+    public ResponseEntity<ApiResponse<OtaGroupXref>> createGroup(
+            @Valid @RequestBody OtaGroupXref otaGroup) {
         log.info("Creating new OTA group: {}", otaGroup);
         return ResponseEntity.ok(ApiResponse.success(otaGroupService.create(otaGroup)));
     }
 
     @Operation(summary = "Update existing OTA group")
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<OtaGroupXref>> update(
+    @PutMapping("v1/group/{id}")
+    public ResponseEntity<ApiResponse<OtaGroupXref>> updateGroup(
             @PathVariable Integer id, 
             @Valid @RequestBody OtaGroupXref otaGroup) {
         log.info("Updating OTA group with id {}: {}", id, otaGroup);
@@ -53,8 +56,9 @@ public class OtaGroupXrefController {
     }
 
     @Operation(summary = "Delete OTA group")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+    @DeleteMapping("v1/group/{id}")
+    public ResponseEntity<Void> deleteGroup(
+            @PathVariable Integer id) {
         log.info("Deleting OTA group with id: {}", id);
         otaGroupService.delete(id);
         return ResponseEntity.noContent().build();

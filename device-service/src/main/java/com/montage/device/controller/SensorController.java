@@ -15,58 +15,62 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/sensors")
+@RequestMapping("/api/sensors")
 @RequiredArgsConstructor
-@Tag(name = "Sensor Management", description = "APIs for managing sensors")
+@Tag(name = "Sensors Management", description = "APIs for managing sensors")
 public class SensorController {
 
-    private final SensorServiceImpl sensorService;
+    private final SensorServiceImpl sensorsService;
 
     @Operation(summary = "Search sensors")
-    @PostMapping("/search")
-    public ResponseEntity<ApiResponse<Page<Sensor>>> search(@RequestBody SearchRequest searchRequest) {
+    @PostMapping("v1/sensor/search")
+    public ResponseEntity<ApiResponse<Page<Sensor>>> searchSensors(
+            @RequestBody SearchRequest searchRequest) {
         log.info("Searching sensors with criteria: {}", searchRequest);
-        return ResponseEntity.ok(ApiResponse.success(sensorService.search(searchRequest)));
+        return ResponseEntity.ok(ApiResponse.success(sensorsService.search(searchRequest)));
     }
 
     @Operation(summary = "Get sensor by ID")
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Sensor>> findById(@PathVariable Integer id) {
+    @GetMapping("v1/sensor/{id}")
+    public ResponseEntity<ApiResponse<Sensor>> getSensor(
+            @PathVariable Integer id) {
         log.info("Finding sensor by id: {}", id);
-        return ResponseEntity.ok(ApiResponse.success(sensorService.findById(id)));
+        return ResponseEntity.ok(ApiResponse.success(sensorsService.findById(id)));
     }
 
     @Operation(summary = "Create new sensor")
-    @PostMapping
-    public ResponseEntity<ApiResponse<Sensor>> create(@Valid @RequestBody Sensor sensor) {
+    @PostMapping("v1/sensor")
+    public ResponseEntity<ApiResponse<Sensor>> createSensor(
+            @Valid @RequestBody Sensor sensor) {
         log.info("Creating new sensor: {}", sensor);
-        return ResponseEntity.ok(ApiResponse.success(sensorService.create(sensor)));
+        return ResponseEntity.ok(ApiResponse.success(sensorsService.create(sensor)));
     }
 
     @Operation(summary = "Update existing sensor")
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Sensor>> update(
+    @PutMapping("v1/sensor/{id}")
+    public ResponseEntity<ApiResponse<Sensor>> updateSensor(
             @PathVariable Integer id, 
             @Valid @RequestBody Sensor sensor) {
         log.info("Updating sensor with id {}: {}", id, sensor);
-        return ResponseEntity.ok(ApiResponse.success(sensorService.update(id, sensor)));
+        return ResponseEntity.ok(ApiResponse.success(sensorsService.update(id, sensor)));
     }
 
     @Operation(summary = "Delete sensor")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+    @DeleteMapping("v1/sensor/{id}")
+    public ResponseEntity<Void> deleteSensor(
+            @PathVariable Integer id) {
         log.info("Deleting sensor with id: {}", id);
-        sensorService.delete(id);
+        sensorsService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Get sensors by device ID")
-    @GetMapping("/device/{deviceId}")
-    public ResponseEntity<ApiResponse<Page<Sensor>>> findByDeviceId(
+    @GetMapping("v1/sensor/device/{deviceId}")
+    public ResponseEntity<ApiResponse<Page<Sensor>>> getSensorsByDevice(
             @PathVariable Integer deviceId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         log.info("Finding sensors for device id: {}", deviceId);
-        return ResponseEntity.ok(ApiResponse.success(sensorService.findByDeviceId(deviceId, page, size)));
+        return ResponseEntity.ok(ApiResponse.success(sensorsService.findByDeviceId(deviceId, page, size)));
     }
 } 
