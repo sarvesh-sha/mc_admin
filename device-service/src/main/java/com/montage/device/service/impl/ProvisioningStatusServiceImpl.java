@@ -54,7 +54,7 @@ public class ProvisioningStatusServiceImpl implements ProvisioningStatusService 
                 .toList())
         );
         
-        Page<ProvisioningStatus> page = provisioningStatusRepository.findAll(specification, pageable);
+        Page<ProvisioningStatus> page =provisioningStatusRepository.findAll(specification, pageable);
         return mapper.convertPage(page, ProvisioningStatusResponse.class);
     }
 
@@ -99,7 +99,7 @@ public class ProvisioningStatusServiceImpl implements ProvisioningStatusService 
     }
 
     private void validateStatusName(String name) {
-        if (provisioningStatusRepository.existsByNameIgnoreCase(name)) {
+        if (provisioningStatusRepository.existsByName(name)) {
             throw new BusinessException(
                 "Provisioning status with name '" + name + "' already exists",
                 "DUPLICATE_STATUS",

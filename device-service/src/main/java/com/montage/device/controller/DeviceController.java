@@ -1,9 +1,6 @@
 package com.montage.device.controller;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,12 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import com.montage.common.dto.ApiResponse;
 import com.montage.common.dto.BulkUploadResponse;
 import com.montage.common.dto.SearchRequest;
-import com.montage.device.dto.DeviceUploadResult;
 import com.montage.device.dto.request.DeviceRequest;
 import com.montage.device.dto.response.DeviceResponse;
-import com.montage.device.entity.Device;
-import com.montage.device.mapper.DeviceMapper;
-import com.montage.device.service.impl.DeviceServiceImpl;
+import com.montage.device.service.DeviceService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,34 +25,30 @@ import lombok.extern.slf4j.Slf4j;
 @Tag(name = "Device Management", description = "APIs for managing devices")
 public class DeviceController {
 
-    private final DeviceServiceImpl deviceService;
-    private final DeviceMapper deviceMapper;
-    private final jakarta.validation.Validator validator;
+    private final DeviceService deviceService;
 
     @Operation(summary = "Search devices")
     @PostMapping("v1/device/search")
-    public ResponseEntity<ApiResponse<Page<DeviceResponse>>> searchDevices(@RequestBody SearchRequest searchRequest) {
+    public ResponseEntity<ApiResponse<Page<DeviceResponse>>> searchDevices(
+            @RequestBody SearchRequest searchRequest) {
         log.info("Searching devices with criteria: {}", searchRequest);
-        Page<Device> devices = deviceService.search(searchRequest);
-        Page<DeviceResponse> response = devices.map(deviceMapper::toResponse);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.success(deviceService.search(searchRequest)));
     }
 
     @Operation(summary = "Get device by ID")
     @GetMapping("v1/device/{id}")
-    public ResponseEntity<ApiResponse<DeviceResponse>> getDevice(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<DeviceResponse>> getDevice(
+            @PathVariable Integer id) {
         log.info("Finding device by id: {}", id);
-        Device device = deviceService.findById(id);
-        return ResponseEntity.ok(ApiResponse.success(deviceMapper.toResponse(device)));
+        return ResponseEntity.ok(ApiResponse.success(deviceService.findById(id)));
     }
 
     @Operation(summary = "Create new device")
     @PostMapping("v1/device")
-    public ResponseEntity<ApiResponse<DeviceResponse>> createDevice(@Valid @RequestBody DeviceRequest request) {
+    public ResponseEntity<ApiResponse<DeviceResponse>> createDevice(
+            @Valid @RequestBody DeviceRequest request) {
         log.info("Creating new device: {}", request);
-        Device device = deviceMapper.toEntity(request);
-        Device savedDevice = deviceService.create(device);
-        return ResponseEntity.ok(ApiResponse.success(deviceMapper.toResponse(savedDevice)));
+        return ResponseEntity.ok(ApiResponse.success(deviceService.create(request)));
     }
 
     @Operation(summary = "Update existing device")
@@ -67,17 +57,15 @@ public class DeviceController {
             @PathVariable Integer id, 
             @Valid @RequestBody DeviceRequest request) {
         log.info("Updating device with id {}: {}", id, request);
-        Device device = deviceMapper.toEntity(request);
-        Device updatedDevice = deviceService.update(id, device);
-        return ResponseEntity.ok(ApiResponse.success(deviceMapper.toResponse(updatedDevice)));
+        return ResponseEntity.ok(ApiResponse.success(deviceService.updateDevice(id, request)));
     }
 
     @Operation(summary = "Delete device")
     @DeleteMapping("v1/device/{id}")
-    public ResponseEntity<Void> deleteDevice(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<String>> deleteDevice(@PathVariable Integer id) {
         log.info("Deleting device with id: {}", id);
         deviceService.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success("Device with ID " + id + " successfully deleted"));
     }
 
     @Operation(summary = "Bulk upload devices")
@@ -85,31 +73,6 @@ public class DeviceController {
     public ResponseEntity<ApiResponse<BulkUploadResponse<String>>> bulkUploadDevices(
             @RequestBody List<DeviceRequest> requests) {
         log.info("Processing bulk upload for {} devices", requests.size());
-        
-        Map<String, String> failedRecords = new HashMap<>();
-        List<Device> validDevices = new ArrayList<>();
-        
-        // Validate each request and collect errors
-        for (DeviceRequest request : requests) {
-            try {
-                validDevices.add(deviceMapper.toEntity(request));
-            } catch (Exception e) {
-                failedRecords.put(request.getImei() != null ? request.getImei() : "Unknown", e.getMessage());
-            }
-        }
-        
-        // Process valid devices
-        DeviceUploadResult result = deviceService.bulkUpload(validDevices);
-        
-        BulkUploadResponse<String> response = BulkUploadResponse.<String>builder()
-            .successCount(result.getSuccessfulDevices().size())
-            .failureCount(result.getFailedDevices().size())
-            .successfulRecords(result.getSuccessfulDevices().stream()
-                .map(Device::getImei)
-                .toList())
-            .failedRecords(result.getFailedDevices())
-            .build();
-            
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.success(deviceService.bulkUpload(requests)));
     }
 } 

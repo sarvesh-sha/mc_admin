@@ -20,4 +20,5 @@ public interface DeviceRepository extends JpaRepository<Device, Integer>, JpaSpe
     Optional<Device> findByImei(String imei);
     Optional<Device> findBySerialNumber(Integer serialNumber);
     List<Device> findByCustomerId(Integer customerId);
+    boolean existsByImeiAndIdNot(String imei, Integer id);
 } 

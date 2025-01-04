@@ -9,11 +9,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.montage.common.dto.SearchRequest;
-import com.montage.common.service.BaseService;
 import com.montage.common.specification.GenericSpecificationBuilder;
+import com.montage.device.dto.request.OtaGroupRequest;
+import com.montage.device.dto.response.OtaGroupResponse;
+import com.montage.device.entity.Customer;
 import com.montage.device.entity.OtaGroupXref;
 import com.montage.device.exception.BusinessException;
+import com.montage.device.mapper.GenericMapper;
 import com.montage.device.repository.OtaGroupXrefRepository;
+import com.montage.device.service.OtaGroupService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,22 +25,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OtaGroupXrefServiceImpl implements BaseService<OtaGroupXref, Integer> {
+public class OtaGroupXrefServiceImpl implements OtaGroupService {
 
     private final OtaGroupXrefRepository otaGroupRepository;
     private final CustomerServiceImpl customerService;
+    private final GenericMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
-    public OtaGroupXref findById(Integer id) {
+    public OtaGroupResponse findById(Integer id) {
         log.debug("Finding OTA group by id: {}", id);
-        return otaGroupRepository.findById(id)
+        OtaGroupXref group = otaGroupRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("OTA group not found with id: " + id));
+        return mapper.convert(group, OtaGroupResponse.class);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OtaGroupXref> search(SearchRequest searchRequest) {
+    public Page<OtaGroupResponse> search(SearchRequest searchRequest) {
         log.debug("Searching OTA groups with criteria: {}", searchRequest);
         
         var specification = new GenericSpecificationBuilder<OtaGroupXref>(searchRequest.getFilters()).build();
@@ -49,51 +55,55 @@ public class OtaGroupXrefServiceImpl implements BaseService<OtaGroupXref, Intege
                 .toList())
         );
         
-        return otaGroupRepository.findAll(specification, pageable);
+        return otaGroupRepository.findAll(specification, pageable)
+                .map(group -> mapper.convert(group, OtaGroupResponse.class));
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public Page<OtaGroupXref> findByCustomerId(Integer customerId, int page, int size) {
+    public Page<OtaGroupResponse> findByCustomerId(Integer customerId, int page, int size) {
         log.debug("Finding OTA groups for customer id: {}", customerId);
         customerService.findById(customerId); // Verify customer exists
-        return otaGroupRepository.findByCustomerId(customerId, PageRequest.of(page, size));
+        return otaGroupRepository.findByCustomerId(customerId, PageRequest.of(page, size))
+                .map(group -> mapper.convert(group, OtaGroupResponse.class));
     }
 
     @Override
     @Transactional
-    public OtaGroupXref create(OtaGroupXref otaGroup) {
-        log.debug("Creating new OTA group: {}", otaGroup);
+    public OtaGroupResponse create(OtaGroupRequest request) {
+        log.debug("Creating new OTA group: {}", request);
+        OtaGroupXref otaGroup = mapper.convert(request, OtaGroupXref.class);
+        handleCustomer(otaGroup, request.getCustomerId());
         validateOtaGroup(otaGroup);
-        return otaGroupRepository.save(otaGroup);
+        OtaGroupXref savedGroup = otaGroupRepository.save(otaGroup);
+        return mapper.convert(savedGroup, OtaGroupResponse.class);
     }
 
     @Override
     @Transactional
-    public OtaGroupXref update(Integer id, OtaGroupXref otaGroup) {
-        log.debug("Updating OTA group with id {}: {}", id, otaGroup);
+    public OtaGroupResponse updateGroup(Integer id, OtaGroupRequest request) {
+        log.debug("Updating OTA group with id {}: {}", id, request);
         
-        var existingGroup = findById(id);
+        OtaGroupXref existingGroup = findGroupById(id);
+        OtaGroupXref updatedGroup = mapper.convert(request, OtaGroupXref.class);
+        updatedGroup.setId(id);
         
-        if (!existingGroup.getGroupName().equals(otaGroup.getGroupName())) {
-            validateGroupName(otaGroup.getGroupName(), otaGroup.getCustomer().getId());
+        handleCustomer(updatedGroup, request.getCustomerId());
+        
+        if (!existingGroup.getGroupName().equals(updatedGroup.getGroupName())) {
+            validateGroupName(updatedGroup.getGroupName(), updatedGroup.getCustomer().getId());
         }
         
-        existingGroup.setGroupName(otaGroup.getGroupName());
-        existingGroup.setGroupId(otaGroup.getGroupId());
-        
-        if (otaGroup.getCustomer() != null) {
-            customerService.findById(otaGroup.getCustomer().getId());
-            existingGroup.setCustomer(otaGroup.getCustomer());
-        }
-        
-        return otaGroupRepository.save(existingGroup);
+        OtaGroupXref savedGroup = otaGroupRepository.save(updatedGroup);
+        return mapper.convert(savedGroup, OtaGroupResponse.class);
     }
 
     @Override
     @Transactional
     public void delete(Integer id) {
         log.debug("Deleting OTA group with id: {}", id);
-        var group = findById(id);
+        OtaGroupXref group = findGroupById(id);
+        
         if (otaGroupRepository.hasAssociatedDevices(id)) {
             throw new BusinessException(
                 "Cannot delete OTA group with associated devices",
@@ -101,7 +111,21 @@ public class OtaGroupXrefServiceImpl implements BaseService<OtaGroupXref, Intege
                 HttpStatus.CONFLICT
             );
         }
+        
         otaGroupRepository.delete(group);
+    }
+
+    private OtaGroupXref findGroupById(Integer id) {
+        return otaGroupRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("OTA group not found with id: " + id));
+    }
+
+    private void handleCustomer(OtaGroupXref group, Integer customerId) {
+        if (customerId != null) {
+            Customer customer = new Customer();
+            customer.setId(customerId);
+            group.setCustomer(customer);
+        }
     }
 
     private void validateOtaGroup(OtaGroupXref otaGroup) {

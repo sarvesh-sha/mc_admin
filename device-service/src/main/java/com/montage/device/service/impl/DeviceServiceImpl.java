@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.time.LocalDateTime;
 
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
@@ -14,39 +11,52 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.Errors;
-import org.springframework.validation.Validator;
 
+import com.montage.common.dto.BulkUploadResponse;
 import com.montage.common.dto.SearchRequest;
-import com.montage.common.service.BaseService;
 import com.montage.common.specification.GenericSpecificationBuilder;
-import com.montage.device.dto.DeviceUploadResult;
+import com.montage.device.dto.request.DeviceProvisioningRequest;
+import com.montage.device.dto.request.DeviceRequest;
+import com.montage.device.dto.response.DeviceResponse;
+import com.montage.device.entity.Customer;
 import com.montage.device.entity.Device;
+import com.montage.device.entity.OtaGroupXref;
+import com.montage.device.entity.Product;
+import com.montage.device.entity.ProvisioningStatus;
+import com.montage.device.mapper.GenericMapper;
 import com.montage.device.repository.DeviceRepository;
+import com.montage.device.repository.ProvisioningStatusRepository;
+import com.montage.device.service.DeviceService;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class DeviceServiceImpl implements BaseService<Device, Integer> {
+public class DeviceServiceImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final Validator validator;
+    private final GenericMapper mapper;
 
-    @Override
-    @Transactional(readOnly = true)
-    public Device findById(Integer id) {
-        log.debug("Finding device by id: {}", id);
-        return deviceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Device not found with id: " + id));
+    private final ProvisioningStatusRepository provisioningStatusRepository;
+    
+    public DeviceServiceImpl(DeviceRepository deviceRepository, GenericMapper mapper, ProvisioningStatusRepository provisioningStatusRepository) {
+        this.deviceRepository = deviceRepository;
+        this.mapper = mapper;
+        this.provisioningStatusRepository = provisioningStatusRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Device> search(SearchRequest searchRequest) {
+    public DeviceResponse findById(Integer id) {
+        log.debug("Finding device by id: {}", id);
+        Device device = deviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Device not found with id: " + id));
+        return mapper.convert(device, DeviceResponse.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DeviceResponse> search(SearchRequest searchRequest) {
         log.debug("Searching devices with criteria: {}", searchRequest);
         
         var specification = new GenericSpecificationBuilder<Device>(searchRequest.getFilters()).build();
@@ -59,174 +69,175 @@ public class DeviceServiceImpl implements BaseService<Device, Integer> {
                 .toList())
         );
         
-        return deviceRepository.findAll(specification, pageable);
+        return deviceRepository.findAll(specification, pageable)
+                .map(device -> mapper.convert(device, DeviceResponse.class));
+    }
+
+    private void handleNestedObjects(Device device, DeviceRequest request) {
+        
+    	request.setIsActive(true);
+    	 // Handle Customer relationship
+        if (request.getCustomerId() != null) {
+            if (device.getCustomer() == null) {
+                device.setCustomer(new Customer());
+            }
+            device.getCustomer().setId(request.getCustomerId());
+        }
+    	// Handle OTA Group
+        if (request.getOtaGroupId() != null) {
+            if (device.getOtaGroup() == null) {
+                device.setOtaGroup(new OtaGroupXref());
+            }
+            device.getOtaGroup().setId(request.getOtaGroupId());
+        }
+        
+        // Handle Provisioning Status
+        if (request.getProvisioningStatusId() != null) {
+            if (device.getProvisioningStatus() == null) {
+                device.setProvisioningStatus(new ProvisioningStatus());
+            }
+            device.getProvisioningStatus().setId(request.getProvisioningStatusId());
+        }
+        
+        // Handle Product
+        if (request.getProductId() != null) {
+            if (device.getProduct() == null) {
+                device.setProduct(new Product());
+            }
+            device.getProduct().setId(request.getProductId());
+        }
     }
 
     @Override
     @Transactional
-    public Device create(Device device) {
-        log.debug("Creating new device: {}", device);
-        return deviceRepository.save(device);
+    public DeviceResponse create(DeviceRequest request) {
+        log.debug("Creating new device: {}", request);
+        Device device = mapper.convert(request, Device.class);
+       
+        handleNestedObjects(device, request);
+        
+        String validationError = validateDevice(device);
+        if (validationError != null) {
+            throw new IllegalArgumentException(validationError);
+        }
+        
+        Device savedDevice = deviceRepository.save(device);
+        return mapper.convert(savedDevice, DeviceResponse.class);
     }
 
     @Override
     @Transactional
-    public Device update(Integer id, Device device) {
-        log.debug("Updating device with id {}: {}", id, device);
+    public DeviceResponse updateDevice(Integer id, DeviceRequest request) {
+        log.debug("Updating device with id {}: {}", id, request);
         
-        var existingDevice = findById(id);
-        // Update fields
-        existingDevice.setDeviceType(device.getDeviceType());
-        existingDevice.setImei(device.getImei());
-        existingDevice.setMake(device.getMake());
-        existingDevice.setModel(device.getModel());
-        existingDevice.setStatus(device.getStatus());
-        existingDevice.setIsActive(device.getIsActive());
-        // ... update other fields
+        Device existingDevice = deviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Device not found with id: " + id));
+                
+        // Convert request to entity and handle nested objects
+        Device updatedDevice = mapper.convert(request, Device.class);
+        updatedDevice.setId(id); // Preserve the ID
+        handleNestedObjects(updatedDevice, request);
         
-        return deviceRepository.save(existingDevice);
+        String validationError = validateDeviceForUpdate(updatedDevice);
+        if (validationError != null) {
+            throw new IllegalArgumentException(validationError);
+        }
+        
+        Device savedDevice = deviceRepository.save(updatedDevice);
+        return mapper.convert(savedDevice, DeviceResponse.class);
     }
 
     @Override
     @Transactional
     public void delete(Integer id) {
         log.debug("Deleting device with id: {}", id);
+        findById(id);
         deviceRepository.deleteById(id);
     }
 
+    @Override
     @Transactional
-    public DeviceUploadResult bulkUpload(List<Device> devices) {
+    public BulkUploadResponse<String> bulkUpload(List<DeviceRequest> requests) {
         List<Device> successfulDevices = new ArrayList<>();
-        Map<String, String> failedDevices = new HashMap<>();
-
-        devices.forEach(device -> {
+        Map<String, String> failedRecords = new HashMap<>();
+        
+        requests.forEach(request -> {
             try {
-                // Custom validation
+                Device device = mapper.convert(request, Device.class);
+                handleNestedObjects(device, request);
+                
                 String validationError = validateDevice(device);
                 if (validationError != null) {
-                    log.error("Validation failed for device: {}. Errors: {}", device, validationError);
-                    failedDevices.put(device.getDeviceType(), validationError);
+                    failedRecords.put(request.getImei(), validationError);
                     return;
                 }
 
-                // Business validations
-                if (device.getImei() != null && deviceRepository.existsByImei(device.getImei())) {
-                    failedDevices.put(device.getDeviceType(), " Device with IMEI " + device.getImei() + " already exists");
-                    return;
-                }
-
-                // Process valid device
                 Device savedDevice = deviceRepository.save(device);
                 successfulDevices.add(savedDevice);
                 log.info("Successfully processed device with IMEI: {}", device.getImei());
 
             } catch (Exception e) {
-                log.error("Error processing device: {}", device, e);
-                failedDevices.put(device.getDeviceType(), "Internal processing error: " + e.getMessage());
+                log.error("Error processing device: {}", request, e);
+                failedRecords.put(request.getImei() != null ? request.getImei() : "Unknown", 
+                    "Internal processing error: " + e.getMessage());
             }
         });
 
-        return DeviceUploadResult.builder()
-            .successfulDevices(successfulDevices)
-            .failedDevices(failedDevices)
+        return BulkUploadResponse.<String>builder()
+            .successCount(successfulDevices.size())
+            .failureCount(failedRecords.size())
+            .successfulRecords(successfulDevices.stream()
+                .map(Device::getImei)
+                .toList())
+            .failedRecords(failedRecords)
             .build();
     }
 
     private String validateDevice(Device device) {
-        List<String> errors = new ArrayList<>();
-
-        // Required field validations
-        if (isEmpty(device.getDeviceType())) {
-            errors.add("Device type is required");
+        // Check for duplicate IMEI
+        if (deviceRepository.existsByImei(device.getImei())) {
+            return "Device with IMEI " + device.getImei() + " already exists";
         }
 
-        if (isEmpty(device.getImei())) {
-            errors.add("IMEI is required");
-        } else if (!device.getImei().matches("^[0-9]{15}$")) {
-            errors.add("IMEI must be 15 digits");
-        }
-
-//        if (isEmpty(device.getMake())) {
-//            errors.add("Make is required");
-//        }
-//
-//        if (isEmpty(device.getModel())) {
-//            errors.add("Model is required");
-//        }
-//
-//        if (isEmpty(device.getStatus())) {
-//            errors.add("Status is required");
-//        }
-//
-//        if (device.getIsActive() == null) {
-//            errors.add("isActive flag is required");
-//        }
-//
-//        if (device.getInstallationDate() != null && 
-//            device.getInstallationDate().isBefore(LocalDateTime.now())) {
-//            errors.add("Installation date must be in the future");
+        // Check for duplicate serial number
+//        if (deviceRepository.existsBySerialNumber(device.getSerialNumber())) {
+//            return "Device with serial number " + device.getSerialNumber() + " already exists";
 //        }
 
-//        // Version validations
-//        if (device.getConfigVersion() == null || device.getConfigVersion() < 0) {
-//            errors.add("Config version must be a non-negative number");
-//        }
-//
-//        if (device.getFirmwareVersion() == null || device.getFirmwareVersion() < 0) {
-//            errors.add("Firmware version must be a non-negative number");
-//        }
-//
-//        if (device.getBootloaderVersion() == null || device.getBootloaderVersion() < 0) {
-//            errors.add("Bootloader version must be a non-negative number");
-//        }
-//
-//        // Health and version validations
-//        if (device.getHealthValue() == null || device.getHealthValue() < 0) {
-//            errors.add("Health value must be a non-negative number");
-//        }
-//
-//        if (device.getHardwareVersion() == null || device.getHardwareVersion() < 0) {
-//            errors.add("Hardware version must be a non-negative number");
-//        }
-//
-//        if (device.getProtocolVersion() == null || device.getProtocolVersion() < 0) {
-//            errors.add("Protocol version must be a non-negative number");
-//        }
-//
-//        // Asset and reference validations
-//        if (isEmpty(device.getAssetName())) {
-//            errors.add("Asset name is required");
-//        }
-//
-//        if (device.getSerialNumber() == null) {
-//            errors.add("Serial number is required");
-//        }
-//
-//        // Related entity validations
-//        if (device.getCustomer() == null || device.getCustomer().getId() == null) {
-//            errors.add("Customer is required");
-//        }
-//
-//        if (device.getOtaGroup() == null || device.getOtaGroup().getId() == null) {
-//            errors.add("OTA group is required");
-//        }
-//
-//        if (device.getProvisioningStatus() == null || device.getProvisioningStatus().getId() == null) {
-//            errors.add("Provisioning status is required");
-//        }
-//
-//        if (device.getProduct() == null || device.getProduct().getId() == null) {
-//            errors.add("Product is required");
-//        }
-//
-//        if (device.getICCID() == null) {
-//            errors.add("ICCID is required");
-//        }
-
-        return errors.isEmpty() ? null : String.join("; ", errors);
+        return null; // validation passed
     }
+    
+	private String validateDeviceForUpdate(Device device) {
+		// Check for duplicate IMEI excluding current device
+		if (deviceRepository.existsByImeiAndIdNot(device.getImei(), device.getId())) {
+			return "Device with IMEI " + device.getImei() + " already exists";
+		}
+		return null; // validation passed
+	}
 
-    private boolean isEmpty(String value) {
-        return value == null || value.trim().isEmpty();
-    }
+	@Override
+	public DeviceResponse update(Integer id, DeviceRequest request) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	@Transactional
+	public DeviceResponse updateProvisioningStatus(Integer deviceId, DeviceProvisioningRequest request) {
+		log.debug("Updating provisioning status for device id: {} to status id: {}", 
+			deviceId, request.getProvisioningStatusId());
+		
+		Device device = deviceRepository.findById(deviceId)
+			.orElseThrow(() -> new ResourceNotFoundException("Device not found with id: " + deviceId));
+		
+		ProvisioningStatus status = provisioningStatusRepository.findById(request.getProvisioningStatusId())
+			.orElseThrow(() -> new ResourceNotFoundException("Provisioning status not found with id: " + 
+				request.getProvisioningStatusId()));
+		
+		// Update status
+		device.setProvisioningStatus(status);
+		Device savedDevice = deviceRepository.save(device);
+		
+		return mapper.convert(savedDevice, DeviceResponse.class);
+	}
 } 

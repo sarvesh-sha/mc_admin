@@ -1,10 +1,12 @@
 package com.montage.device.repository;
 
-import com.montage.common.repository.BaseRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import com.montage.device.entity.ProvisioningStatus;
-import org.springframework.stereotype.Repository;
 
-@Repository
-public interface ProvisioningStatusRepository extends BaseRepository<ProvisioningStatus, Integer> {
+public interface ProvisioningStatusRepository extends JpaRepository<ProvisioningStatus, Integer>, 
+    JpaSpecificationExecutor<ProvisioningStatus> {
+    
+    boolean existsByName(String name);
     boolean existsByNameIgnoreCase(String name);
 } 

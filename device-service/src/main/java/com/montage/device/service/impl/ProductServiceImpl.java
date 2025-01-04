@@ -9,11 +9,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.montage.common.dto.SearchRequest;
-import com.montage.common.service.BaseService;
 import com.montage.common.specification.GenericSpecificationBuilder;
+import com.montage.device.dto.request.ProductRequest;
+import com.montage.device.dto.response.ProductResponse;
 import com.montage.device.entity.Product;
 import com.montage.device.exception.BusinessException;
+import com.montage.device.mapper.GenericMapper;
 import com.montage.device.repository.ProductRepository;
+import com.montage.device.service.ProductService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,21 +24,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ProductServiceImpl implements BaseService<Product, Integer> {
+public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final GenericMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Product findById(Integer id) {
+    public ProductResponse findById(Integer id) {
         log.debug("Finding product by id: {}", id);
-        return productRepository.findById(id)
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+        return mapper.convert(product, ProductResponse.class);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Product> search(SearchRequest searchRequest) {
+    public Page<ProductResponse> search(SearchRequest searchRequest) {
         log.debug("Searching products with criteria: {}", searchRequest);
         
         var specification = new GenericSpecificationBuilder<Product>(searchRequest.getFilters()).build();
@@ -48,42 +53,42 @@ public class ProductServiceImpl implements BaseService<Product, Integer> {
                 .toList())
         );
         
-        return productRepository.findAll(specification, pageable);
+        return productRepository.findAll(specification, pageable)
+                .map(product -> mapper.convert(product, ProductResponse.class));
     }
 
     @Override
     @Transactional
-    public Product create(Product product) {
-        log.debug("Creating new product: {}", product);
+    public ProductResponse create(ProductRequest request) {
+        log.debug("Creating new product: {}", request);
+        Product product = mapper.convert(request, Product.class);
         validateProduct(product);
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        return mapper.convert(savedProduct, ProductResponse.class);
     }
 
     @Override
     @Transactional
-    public Product update(Integer id, Product product) {
-        log.debug("Updating product with id {}: {}", id, product);
+    public ProductResponse updateProduct(Integer id, ProductRequest request) { 
+        log.debug("Updating product with id {}: {}", id, request);
         
-        var existingProduct = findById(id);
+        Product existingProduct = findProductById(id);
+        Product updatedProduct = mapper.convert(request, Product.class);
+        updatedProduct.setId(id);
         
-        if (!existingProduct.getSku().equals(product.getSku())) {
-            validateSku(product.getSku());
+        if (!existingProduct.getSku().equals(updatedProduct.getSku())) {
+            validateSku(updatedProduct.getSku());
         }
         
-        // Update fields
-        existingProduct.setManufacturer(product.getManufacturer());
-        existingProduct.setModel(product.getModel());
-        existingProduct.setSku(product.getSku());
-       
-        
-        return productRepository.save(existingProduct);
+        Product savedProduct = productRepository.save(updatedProduct);
+        return mapper.convert(savedProduct, ProductResponse.class);
     }
 
     @Override
     @Transactional
     public void delete(Integer id) {
         log.debug("Deleting product with id: {}", id);
-        var product = findById(id);
+        Product product = findProductById(id);
         
         if (productRepository.hasAssociatedDevices(id)) {
             throw new BusinessException(
@@ -96,11 +101,18 @@ public class ProductServiceImpl implements BaseService<Product, Integer> {
         productRepository.delete(product);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public Product findBySku(String sku) {
+    public ProductResponse findBySku(String sku) {
         log.debug("Finding product by SKU: {}", sku);
-        return productRepository.findBySku(sku)
+        Product product = productRepository.findBySku(sku)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with SKU: " + sku));
+        return mapper.convert(product, ProductResponse.class);
+    }
+
+    private Product findProductById(Integer id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
     }
 
     private void validateProduct(Product product) {
@@ -119,12 +131,12 @@ public class ProductServiceImpl implements BaseService<Product, Integer> {
     }
 
     private void validateManufacturerAndModel(String manufacturer, String model) {
-        if (productRepository.existsByManufacturerAndModel(manufacturer, model)) {
-            throw new BusinessException(
-                "Product with manufacturer '" + manufacturer + "' and model '" + model + "' already exists",
-                "DUPLICATE_MANUFACTURER_MODEL",
-                HttpStatus.CONFLICT
-            );
-        }
+//        if (productRepository.existsByManufacturerAndModel(manufacturer, model)) {
+//            throw new BusinessException(
+//                "Product with manufacturer '" + manufacturer + "' and model '" + model + "' already exists",
+//                "DUPLICATE_MANUFACTURER_MODEL",
+//                HttpStatus.CONFLICT
+//            );
+//        }
     }
 } 

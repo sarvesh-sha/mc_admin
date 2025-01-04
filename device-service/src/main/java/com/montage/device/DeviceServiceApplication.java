@@ -16,7 +16,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.montage.common.exception.GlobalExceptionHandler;
 
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.montage.device")
 //@EnableDiscoveryClient
 @ComponentScan(
     basePackages = {"com.montage.device", "com.montage.common"},

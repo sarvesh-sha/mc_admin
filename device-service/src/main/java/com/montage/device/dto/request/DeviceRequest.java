@@ -24,7 +24,7 @@ public class DeviceRequest {
     private String status;
 
   //  @NotNull(message = "isActive flag is required")
-    private Boolean isActive;
+    private Boolean isActive=true;
 
    // @Future(message = "Installation date must be in the future")
     private LocalDateTime installationDate;

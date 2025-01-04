@@ -8,10 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.montage.common.dto.SearchRequest;
-import com.montage.common.service.BaseService;
 import com.montage.common.specification.GenericSpecificationBuilder;
+import com.montage.device.dto.request.SensorRequest;
+import com.montage.device.dto.response.SensorResponse;
+import com.montage.device.entity.Device;
 import com.montage.device.entity.Sensor;
+import com.montage.device.mapper.GenericMapper;
 import com.montage.device.repository.SensorRepository;
+import com.montage.device.service.SensorService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,24 +23,22 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SensorServiceImpl implements BaseService<Sensor, Integer> {
+public class SensorServiceImpl implements SensorService {
 
     private final SensorRepository sensorRepository;
     private final DeviceServiceImpl deviceService;
+    private final GenericMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Sensor findById(Integer id) {
-        log.debug("Finding sensor by id: {}", id);
-        return sensorRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Sensor not found with id: " + id));
+    public SensorResponse findById(Integer id) {
+        Sensor sensor = findSensorById(id);
+        return mapper.convert(sensor, SensorResponse.class);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Sensor> search(SearchRequest searchRequest) {
-        log.debug("Searching sensors with criteria: {}", searchRequest);
-        
+    public Page<SensorResponse> search(SearchRequest searchRequest) {
         var specification = new GenericSpecificationBuilder<Sensor>(searchRequest.getFilters()).build();
         var pageable = PageRequest.of(
             searchRequest.getPage(), 
@@ -47,54 +49,72 @@ public class SensorServiceImpl implements BaseService<Sensor, Integer> {
                 .toList())
         );
         
-        return sensorRepository.findAll(specification, pageable);
+        return sensorRepository.findAll(specification, pageable)
+                .map(sensor -> mapper.convert(sensor, SensorResponse.class));
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public Page<Sensor> findByDeviceId(Integer deviceId, int page, int size) {
-        log.debug("Finding sensors for device id: {}", deviceId);
-        // Verify device exists
-        deviceService.findById(deviceId);
-        return sensorRepository.findByDeviceId(deviceId, PageRequest.of(page, size));
+    public Page<SensorResponse> findByDeviceId(Integer deviceId, int page, int size) {
+        deviceService.findById(deviceId); // Verify device exists
+        return sensorRepository.findByDeviceId(deviceId, PageRequest.of(page, size))
+                .map(sensor -> mapper.convert(sensor, SensorResponse.class));
     }
 
     @Override
     @Transactional
-    public Sensor create(Sensor sensor) {
-        log.debug("Creating new sensor: {}", sensor);
-        // Verify device exists if device is set
-        if (sensor.getDevice() != null) {
-            deviceService.findById(sensor.getDevice().getId());
-        }
-        return sensorRepository.save(sensor);
+    public SensorResponse create(SensorRequest request) {
+        Sensor sensor = mapper.convert(request, Sensor.class);
+        handleNestedObjects(sensor, request);
+        validateSensor(sensor);
+        
+        Sensor savedSensor = sensorRepository.save(sensor);
+        return mapper.convert(savedSensor, SensorResponse.class);
     }
 
     @Override
     @Transactional
-    public Sensor update(Integer id, Sensor sensor) {
-        log.debug("Updating sensor with id {}: {}", id, sensor);
+    public SensorResponse updateSensor(Integer id, SensorRequest request) {
+        findSensorById(id); // Verify exists
         
-        var existingSensor = findById(id);
-        // Update fields
-        existingSensor.setStatus(sensor.getStatus());
-        existingSensor.setMacAddress(sensor.getMacAddress());
-        existingSensor.setSerialNumber(sensor.getSerialNumber());
-        existingSensor.setHealthValue(sensor.getHealthValue());
-        existingSensor.setIsActive(sensor.getIsActive());
-        existingSensor.setLocation(sensor.getLocation());
+        Sensor sensor = mapper.convert(request, Sensor.class);
+        sensor.setId(id);
+        handleNestedObjects(sensor, request);
+        validateSensorUpdate(sensor);
         
-        if (sensor.getDevice() != null) {
-            deviceService.findById(sensor.getDevice().getId());
-            existingSensor.setDevice(sensor.getDevice());
-        }
-        
-        return sensorRepository.save(existingSensor);
+        Sensor savedSensor = sensorRepository.save(sensor);
+        return mapper.convert(savedSensor, SensorResponse.class);
     }
 
     @Override
     @Transactional
     public void delete(Integer id) {
-        log.debug("Deleting sensor with id: {}", id);
+        findSensorById(id); // Verify exists
         sensorRepository.deleteById(id);
+    }
+
+    private Sensor findSensorById(Integer id) {
+        return sensorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Sensor not found with id: " + id));
+    }
+
+    private void handleNestedObjects(Sensor sensor, SensorRequest request) {
+        if (request.getDeviceId() != null) {
+            Device device = new Device();
+            device.setId(request.getDeviceId());
+            sensor.setDevice(device);
+        }
+    }
+
+    private void validateSensor(Sensor sensor) {
+        if (sensor.getDevice() != null) {
+            deviceService.findById(sensor.getDevice().getId());
+        }
+        // Add additional validations as needed
+    }
+
+    private void validateSensorUpdate(Sensor sensor) {
+        validateSensor(sensor);
+        // Add update-specific validations if needed
     }
 } 

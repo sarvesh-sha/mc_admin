@@ -36,8 +36,8 @@ public class Audit {
     @Column(name = "details")
     private String details;
     
-    @Column(name = "entity_type")
-    private String entityType;
+    @Column(name = "entity_name")
+    private String entityName;
     
     @Column(name = "entity_id")
     private Integer entityId;

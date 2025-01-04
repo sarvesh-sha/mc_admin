@@ -42,10 +42,29 @@ public class AuditAspect {
 
     @Around("execution(* com.montage.device.service.impl.*.delete(..))")
     public Object auditDelete(ProceedingJoinPoint joinPoint) throws Throwable {
-        Object oldValue = entityManager.find(joinPoint.getArgs()[1].getClass(), joinPoint.getArgs()[0]);
+    	Integer id = (Integer) joinPoint.getArgs()[0];
+        Class<?> entityClass = getEntityClass(joinPoint);  // Helper method to get entity class
+        Object oldValue = entityManager.find(entityClass, id);
+        
+        // Proceed with deletion
         Object result = joinPoint.proceed();
+        
+        // Create audit entry
         createAuditEntry(oldValue, null, EventTypeEnum.DELETE);
+      
         return result;
+    }
+    private Class<?> getEntityClass(ProceedingJoinPoint joinPoint) {
+        // Get the target class name (e.g., DeviceServiceImpl)
+        String className = joinPoint.getTarget().getClass().getSimpleName();
+        // Remove "ServiceImpl" and get entity name (e.g., Device)
+        String entityName = className.replace("ServiceImpl", "");
+        try {
+            // Construct the full entity class name and return the Class object
+            return Class.forName("com.montage.device.entity." + entityName);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Could not find entity class for " + entityName, e);
+        }
     }
 
     private void createAuditEntry(Object oldValue, Object newValue, EventTypeEnum eventType) {
@@ -55,7 +74,7 @@ public class AuditAspect {
 
             Audit audit = Audit.builder()
                 .eventType(eventTypeEntity)
-                .entityType(newValue != null ? newValue.getClass().getSimpleName() : oldValue.getClass().getSimpleName())
+                .entityName(newValue != null ? newValue.getClass().getSimpleName() : oldValue.getClass().getSimpleName())
                 .entityId(getEntityId(newValue != null ? newValue : oldValue))
                 .oldValue(oldValue != null ? objectMapper.writeValueAsString(oldValue) : null)
                 .newValue(newValue != null ? objectMapper.writeValueAsString(newValue) : null)

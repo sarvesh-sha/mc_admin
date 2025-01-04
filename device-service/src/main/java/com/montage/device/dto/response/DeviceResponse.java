@@ -9,9 +9,10 @@ import com.montage.device.entity.ProvisioningStatus;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@Builder
+@NoArgsConstructor
 public class DeviceResponse {
     private Integer id;
     private String deviceType;
@@ -37,7 +38,7 @@ public class DeviceResponse {
     
     // Audit fields
     private String createdBy;
-    private LocalDateTime createdAt;
+    private LocalDateTime createdOn;
     private String updatedBy;
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedOn;
 } 
