@@ -45,14 +45,10 @@ public class DeviceServiceApplication {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                    .allowedOrigins(
-                        "http://localhost:4200",
-                        "http://74.179.58.105:8080",
-                        "http://localhost:3000"
-                    )
+                    .allowedOrigins("*")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With")
-                    .allowCredentials(true)
+                    .allowCredentials(false)
                     .maxAge(3600);
             }
         };
